@@ -171,7 +171,7 @@ class TradeBot:
                         qty=1,
                         side='buy',
                         type='market',
-                        time_in_force='gtc',
+                        time_in_force='day',
                         order_class='bracket',
                         stop_loss={'stop_price': symbol_price * (1-spread),
                                    'limit_price': symbol_price * (1-spread)*0.95},
@@ -183,9 +183,10 @@ class TradeBot:
                 qty=1,
                 side='buy',
                 type='market',
-                time_in_force='gtc',
+                time_in_force='day',
                 order_class='bracket',
                 stop_loss={'stop_price': symbol_price * (1 - spread),
                            'limit_price': symbol_price * (1 - spread) * 0.95},
                 take_profit={'limit_price': symbol_price * (1 + spread)}
             )
+

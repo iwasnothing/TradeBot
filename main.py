@@ -363,7 +363,7 @@ def trade():
         print(ticker)
         print(spread)
         api = tradeapi.REST()
-        account = api.get_account()
+        #account = api.get_account()
         ticker_bars = api.get_barset(ticker, 'minute', 1).df.iloc[0]
         ticker_price = ticker_bars[ticker]['close']
         print(ticker_price)
@@ -424,6 +424,49 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
             source_file_name, destination_blob_name
         )
     )
+
+@app.route('/dayend')
+def sellAll():
+    envelope = request.get_json()
+    if not envelope:
+        msg = 'no Pub/Sub message received'
+        print(f'error: {msg}')
+        return f'Bad Request: {msg}', 400
+
+    if not isinstance(envelope, dict) or 'message' not in envelope:
+        msg = 'invalid Pub/Sub message format'
+        print(f'error: {msg}')
+        return f'Bad Request: {msg}', 400
+
+    pubsub_message = envelope['message']
+
+    name = 'World'
+    if isinstance(pubsub_message, dict) and 'data' in pubsub_message:
+        name = base64.b64decode(pubsub_message['data']).decode('utf-8').strip()
+        print(f'Filter {name}!')
+        msg = json.loads(name)
+        ticker = msg["ticker"]
+        spread = msg['spread']
+        print(ticker)
+        print(spread)
+        api = tradeapi.REST()
+        api.cancel_all_orders()
+        portfolio = api.list_positions()
+
+        # Print the quantity of shares for each position.
+        for position in portfolio:
+            print("current position is {}".format(position.qty))
+            try:
+                api.submit_order(
+                    symbol=position.symbol ,
+                    qty=position.qty,
+                    side='sell',
+                    type='market',
+                    time_in_force='day'
+                )
+            except Exception as e:
+                print(e.message)
+    return ('', 204)
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
