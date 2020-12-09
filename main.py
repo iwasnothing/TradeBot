@@ -24,7 +24,7 @@ Q1="""
         SELECT ticker1,ticker2,accuracy/(10*rmse) as score
         FROM `iwasnothing-self-learning.stock_cor.stock_cor_short_list` 
         where create_dt in (select create_dt from dateList limit 1)
-        ORDER BY score desc ) LIMIT 3
+        ORDER BY score desc ) LIMIT 2
 """
 def init_vars():
     client = secretmanager_v1.SecretManagerServiceClient()
