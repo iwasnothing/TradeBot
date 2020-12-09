@@ -16,8 +16,10 @@ RUN apt-get install python3 -y
 RUN apt-get install python3-pip -y
 RUN apt-get install -y libstdc++6 python-setuptools libgconf-2-4
 # Install production dependencies.
-RUN pip install google-cloud-secret-manager
-RUN pip install google-cloud-storage
+RUN pip install --upgrade google-cloud-pubsub
+RUN pip install --upgrade google-cloud-secret-manager
+RUN pip install --upgrade google-cloud-storage
+RUN pip install --upgrade google-cloud-bigquery
 RUN pip install Flask gunicorn
 RUN pip install turicreate
 RUN pip install alpaca-trade-api
@@ -25,6 +27,8 @@ RUN pip install numpy
 RUN pip install pandas
 RUN pip install joblib
 RUN pip install scikit-learn
+RUN pip install matplotlib
+RUN pip install yfinance
 
 COPY . ./
 # Run the web service on container startup. Here we use the gunicorn

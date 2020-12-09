@@ -69,10 +69,10 @@ class TradeBot:
         scalerY = MinMaxScaler()
         x = self.get_data_x(self.ticker1)
         y = self.get_data_y(self.ticker2)
-        print(x)
+        #print(x)
         # print(y)
         # print(y.values)
-        print(x.values.shape)
+        #print(x.values.shape)
         x = pd.DataFrame(scalerX.fit_transform(x.values), columns=x.columns, index=x.index)
         y = pd.DataFrame(scalerY.fit_transform(y.values), columns=y.columns, index=y.index)
         joblib.dump(scalerX, self.ticker1 + "-" + self.ticker2 + '-scalerX.gz')
@@ -111,18 +111,18 @@ class TradeBot:
         model = tc.load_model(self.ticker1 + "-" + self.ticker2 + '-regression')
         hist = self.load_data(self.ticker1,self.period)
         current = np.array(hist.iloc[-1*(self.past-1)*self.win:].values).reshape(1,-1)
-        print(current)
+        #print(current)
         current = scalerX.transform(current)
         current = tc.SFrame(current)
         future = model.predict(current)
-        print(hist)
+        #print(hist)
         price = hist['Close'].values
         current = tc.SFrame(price[-1*(self.past-1)*self.win:])
         future = model.predict(current)
         future = np.expand_dims(future, axis=0)
         print(future[0][0])
         future = scalerY.inverse_transform(future)
-        print(future[0][0])
+        print("predicted price after transform is {}".format(future[0][0]))
         return future[0][0]
 
     def load_data(self,ticker,period):
@@ -144,13 +144,39 @@ class TradeBot:
 
     def buy(self,symbol,price):
         api = tradeapi.REST()
-        position = api.get_position(symbol)
-        print(position.qty)
         symbol_bars = api.get_barset(symbol, 'minute', 1).df.iloc[0]
         symbol_price = symbol_bars[symbol]['close']
         spread = (price - symbol_price) / symbol_price
-        print(spread)
-        if (int(position.qty) <= 3 and spread > 0.01):
+        print("predicted spread is {}".format(spread))
+        toBuy = False
+        if spread < 0 :
+            print("No profit")
+            toBuy = False
+            return
+            #position = api.get_position(symbol)
+        # Get a list of all of our positions.
+        toBuy = True
+        portfolio = api.list_positions()
+
+        # Print the quantity of shares for each position.
+        for position in portfolio:
+            if position.symbol == symbol:
+                toBuy = False
+                print("current position is {}".format(position.qty))
+                if (int(position.qty) <= 3 and spread > 0):
+                    print("place order")
+                    api.submit_order(
+                        symbol=symbol,
+                        qty=1,
+                        side='buy',
+                        type='market',
+                        time_in_force='gtc',
+                        order_class='bracket',
+                        stop_loss={'stop_price': symbol_price * (1-spread),
+                                   'limit_price': symbol_price * (1-spread)*0.95},
+                        take_profit={'limit_price': symbol_price * (1+spread)}
+                    )
+        if toBuy == True:
             api.submit_order(
                 symbol=symbol,
                 qty=1,
@@ -158,7 +184,7 @@ class TradeBot:
                 type='market',
                 time_in_force='gtc',
                 order_class='bracket',
-                stop_loss={'stop_price': symbol_price * (1-spread),
-                           'limit_price': symbol_price * (1-spread)*0.95},
-                take_profit={'limit_price': symbol_price * (1+spread)}
+                stop_loss={'stop_price': symbol_price * (1 - spread),
+                           'limit_price': symbol_price * (1 - spread) * 0.95},
+                take_profit={'limit_price': symbol_price * (1 + spread)}
             )
