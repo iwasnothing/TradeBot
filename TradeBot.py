@@ -156,6 +156,7 @@ class TradeBot:
             #position = api.get_position(symbol)
         # Get a list of all of our positions.
         toBuy = True
+        api.cancel_all_orders()
         portfolio = api.list_positions()
 
         # Print the quantity of shares for each position.
