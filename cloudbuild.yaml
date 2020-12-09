@@ -29,7 +29,7 @@ steps:
       - '--concurrency=1'
       - '--cpu=1'
       - '--max-instances=1'
-      - '--set-env-vars PCA_API_BASE_URL=https://paper-api.alpaca.markets '
+      - '--set-env-vars=PCA_API_BASE_URL=https://paper-api.alpaca.markets '
       - '--service-account=pubsubsa@iwasnothing-self-learning.iam.gserviceaccount.com'
       - '--no-allow-unauthenticated'
       - '--region=us-central1'
