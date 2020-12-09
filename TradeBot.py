@@ -10,7 +10,7 @@ import time
 import joblib
 
 class TradeBot:
-    def __init__(self,ticker1='ZM',ticker2='LBTYK',win=5,past=6):
+    def __init__(self,ticker1='ZM',ticker2='LBTYK',win=5,past=6, key=None):
         requests.packages.urllib3.disable_warnings()
         try:
             _create_unverified_https_context = ssl._create_unverified_context
@@ -25,6 +25,8 @@ class TradeBot:
         self.ticker2 = ticker2
         self.win = win
         self.period = past * win
+        self.key = key
+           
 
     def accuracy(self, x_valid, rnn_forecast):
         a = []
@@ -126,8 +128,8 @@ class TradeBot:
         return future[0][0]
 
     def load_data(self,ticker,period):
-        api = tradeapi.REST()
-
+        api = tradeapi.REST(self.key['APCA_API_KEY_ID'], self.key['APCA_API_SECRET_KEY'], self.key['APCA_API_BASE_URL'], 'v2')
+        #  {"APCA_API_KEY_ID": id, "APCA_API_SECRET_KEY": secret, "APCA_API_BASE_URL": "https://paper-api.alpaca.markets" }
         # Get daily price data for AAPL over the last 5 trading days.
         barset = api.get_barset(ticker, 'minute', limit=period)
         bars = barset[ticker]
@@ -143,7 +145,7 @@ class TradeBot:
         return df
 
     def buy(self,symbol,price):
-        api = tradeapi.REST()
+        api = tradeapi.REST(self.key['APCA_API_KEY_ID'], self.key['APCA_API_SECRET_KEY'], self.key['APCA_API_BASE_URL'], 'v2')
         symbol_bars = api.get_barset(symbol, 'minute', 1).df.iloc[0]
         symbol_price = symbol_bars[symbol]['close']
         spread = (price - symbol_price) / symbol_price

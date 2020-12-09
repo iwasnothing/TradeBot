@@ -33,12 +33,15 @@ def init_vars():
     response = client.access_secret_version(request={'name': name})
     print(response)
     os.environ["APCA_API_KEY_ID"] = response.payload.data.decode('UTF-8')
+    id = response.payload.data.decode('UTF-8')
 
     name = f"projects/{PRJID}/secrets/APCA_API_SECRET_KEY/versions/latest"
     response = client.access_secret_version(request={'name': name})
     print(response)
-    os.environ["APCA_API_SECRET_ID"] = response.payload.data.decode('UTF-8')
-
+    os.environ["APCA_API_SECRET_KEY"] = response.payload.data.decode('UTF-8')
+    secret = response.payload.data.decode('UTF-8')
+    result = {"APCA_API_KEY_ID": id, "APCA_API_SECRET_KEY": secret, "APCA_API_BASE_URL": "https://paper-api.alpaca.markets" }
+    return result
 
 def download_files(ticker1,ticker2):
     bucket_name = "iwasnothing-cloudml-job-dir"
@@ -248,13 +251,13 @@ def predict():
         ticker1 = req_json['ticker1']
         ticker2 = req_json['ticker2']
         print(ticker1,ticker2)
-        init_vars()
+        key = init_vars()
         download_files(ticker1,ticker2)
         #ticker1='ZM'
         #ticker2='LBTYK'
         win = 5
         past = 6
-        bot = TradeBot(ticker1,ticker2,win,past)
+        bot = TradeBot(ticker1,ticker2,win,past,key)
         result = bot.predictPrice()
         print(result)
         bot.buy(ticker2,result)
@@ -323,12 +326,12 @@ def train():
         ticker1 = req_json['ticker1']
         ticker2 = req_json['ticker2']
         print(ticker1,ticker2)
-        init_vars()
+        key = init_vars()
         #ticker1='ZM'
         #ticker2='LBTYK'
         win = 5
         past = 6
-        bot = TradeBot(ticker1,ticker2,win,past)
+        bot = TradeBot(ticker1,ticker2,win,past, key)
         result = bot.pair_loss()
         print(result)
         prefix = ticker1 + "-" + ticker2 + "-"
@@ -362,7 +365,8 @@ def trade():
         spread = msg['spread']
         print(ticker)
         print(spread)
-        api = tradeapi.REST()
+        key = init_vars()
+        api = tradeapi.REST(key['APCA_API_KEY_ID'], key['APCA_API_SECRET_KEY'], key['APCA_API_BASE_URL'], 'v2')
         #account = api.get_account()
         ticker_bars = api.get_barset(ticker, 'minute', 1).df.iloc[0]
         ticker_price = ticker_bars[ticker]['close']
@@ -449,7 +453,8 @@ def sellAll():
         spread = msg['spread']
         print(ticker)
         print(spread)
-        api = tradeapi.REST()
+        key = init_vars()
+        api = tradeapi.REST(key['APCA_API_KEY_ID'], key['APCA_API_SECRET_KEY'], key['APCA_API_BASE_URL'], 'v2')
         api.cancel_all_orders()
         portfolio = api.list_positions()
 
