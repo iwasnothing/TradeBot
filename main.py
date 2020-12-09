@@ -174,7 +174,7 @@ def filter():
         today = date.today()
         todstr = today.strftime("%Y-%m-%d")
         print(ticker1,ticker2,rmse,acc,future,today)
-        if rmse <= 0.04 and acc >= 0.65:
+        if rmse < 0.05 and acc > 0.5:
             print("insert stock")
             bigquery_client = bigquery.Client()
             # Prepares a reference to the dataset
