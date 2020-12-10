@@ -51,6 +51,9 @@ def download_files(ticker1,ticker2):
     download_blob(bucket_name,  filename, wdir + filename)
     with ZipFile(wdir+filename, 'r') as zipObj:
         zipObj.extractall()
+        dirs = os.listdir("/app")
+        for file in dirs:
+            print(file)
     filename = prefix + "scalerX.gz"
     download_blob(bucket_name,  filename, wdir + filename)
     filename = prefix + "scalerY.gz"
