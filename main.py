@@ -410,7 +410,7 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
             else:
                 dirs = os.listdir("/app")
                 for file in dirs:
-                    print file
+                    print(file)
         except:
             return False
     else:
