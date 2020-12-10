@@ -50,11 +50,11 @@ def download_files(ticker1,ticker2):
     filename = prefix + "regression.zip"
     download_blob(bucket_name,  filename, wdir + filename)
     with ZipFile(wdir+filename, 'r') as zipObj:
-        zipObj.extractall('/app')
-        print("after unzip")
-        dirs = os.listdir("/app")
-        for file in dirs:
-            print(file)
+        zipObj.extractall('/app/'+prefix+"regression")
+    print("after unzip")
+    dirs = os.listdir("/app")
+    for file in dirs:
+        print(file)
     filename = prefix + "scalerX.gz"
     download_blob(bucket_name,  filename, wdir + filename)
     filename = prefix + "scalerY.gz"
