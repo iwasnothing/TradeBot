@@ -398,6 +398,10 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     storage_client = storage.Client()
     print("dowbload_blob")
     print(bucket_name, source_blob_name, destination_file_name)
+    if os.path.exists(destination_file_name):
+        os.remove(destination_file_name)
+    else:
+        print(destination_file_name + " doesn't exists")
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(source_blob_name)
     if blob.exists():
