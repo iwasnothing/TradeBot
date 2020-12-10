@@ -396,7 +396,8 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     # destination_file_name = "local/path/to/file"
 
     storage_client = storage.Client()
-
+    print("dowbload_blob")
+    print(bucket_name, source_blob_name, destination_file_name)
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(source_blob_name)
     if blob.exists():
@@ -406,8 +407,14 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
             if ret is not None:
                 print("Blob {} downloaded to {}.".format(source_blob_name, destination_file_name))
                 return True
+            else:
+                dirs = os.listdir("/app")
+                for file in dirs:
+                    print file
         except:
             return False
+    else:
+        print("blob not exist")
     return False
 
 
