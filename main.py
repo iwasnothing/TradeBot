@@ -550,10 +550,8 @@ def buyperday():
     for row in query_job:
         for val in row:
             print(val)
-        # The `topic_path` method creates a fully qualified identifier
-        # in the form `projects/{project_id}/topics/{topic_id}`
         print(row[0])
-
+    return ('', 204)
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
