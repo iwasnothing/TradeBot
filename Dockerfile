@@ -29,6 +29,7 @@ RUN pip install joblib
 RUN pip install scikit-learn
 RUN pip install matplotlib
 RUN pip install yfinance
+RUN pip install newsapi-python
 
 COPY . ./
 # Run the web service on container startup. Here we use the gunicorn
