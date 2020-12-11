@@ -62,7 +62,7 @@ class MAPredictor:
         results = model.evaluate(test_data)
         prediction = model.predict(last)
         print(prediction)
-        results['prediction'] = prediction
+        results['prediction'] = prediction.apply(lambda x: x[0])
         return results
 
     def trainAll(self):
