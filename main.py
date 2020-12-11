@@ -534,5 +534,26 @@ def ma_train_predict():
     job.result()
     return ('', 204)
 
+@app.route('/buyperday', methods=['POST'])
+def buyperday():
+    envelope = request.get_json()
+    # Construct a BigQuery client object.
+    #project_id = "iwasnothing-self-learning"
+    client = bigquery.Client()
+    print(envelope)
+    qstr = envelope['query']
+    #today = date.today()
+    #todstr = today.strftime("%Y-%m-%d")
+    query_job = client.query(qstr)  # Make an API request.
+
+    print("The query data:")
+    for row in query_job:
+        for val in row:
+            print(val)
+        # The `topic_path` method creates a fully qualified identifier
+        # in the form `projects/{project_id}/topics/{topic_id}`
+        print(row[0])
+
+
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
