@@ -85,7 +85,7 @@ class NewsPredictor:
         #data['month'] = data['datetime'].apply(lambda x: x.month)
         #data['day'] = data['datetime'].apply(lambda x: x.day)
 
-        data['text'] = data[['stock','text','next-day']].groupby(['next-day'])['title'].transform(lambda x: ','.join(x))
+        data['text'] = data[['stock','text','next-day']].groupby(['next-day'])['text'].transform(lambda x: ','.join(x))
         text_data = data[['stock','text','next-day']].drop_duplicates().sort_values('next-day').reset_index()
         print(text_data)
         stock_data = pd.concat(price,ignore_index=True)
