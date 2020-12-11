@@ -495,7 +495,7 @@ def news_train_predict():
     job_config = bigquery.LoadJobConfig(
         schema=[
             bigquery.SchemaField("stock", bigquery.enums.SqlTypeNames.STRING),
-            bigquery.SchemaField("avg", bigquery.enums.SqlTypeNames.NUMERIC),
+            bigquery.SchemaField("avg", bigquery.enums.SqlTypeNames.FLOAT64),
             bigquery.SchemaField("count", bigquery.enums.SqlTypeNames.NUMERIC),
             bigquery.SchemaField("create_dt", bigquery.enums.SqlTypeNames.STRING),
         ]
@@ -521,7 +521,7 @@ def ma_train_predict():
     job_config = bigquery.LoadJobConfig(
         schema=[
             bigquery.SchemaField("stock", bigquery.enums.SqlTypeNames.STRING),
-            bigquery.SchemaField("accuracy", bigquery.enums.SqlTypeNames.NUMERIC),
+            bigquery.SchemaField("accuracy", bigquery.enums.SqlTypeNames.FLOAT64),
             bigquery.SchemaField("prediction", bigquery.enums.SqlTypeNames.STRING),
             bigquery.SchemaField("create_dt", bigquery.enums.SqlTypeNames.STRING),
         ]
