@@ -62,7 +62,7 @@ class MAPredictor:
         results = model.evaluate(test_data)
         prediction = model.predict(last)
         print(prediction)
-        results['prediction'] = prediction.apply(lambda x: x[0])
+        results['prediction'] = prediction[0]
         return results
 
     def trainAll(self):
@@ -77,6 +77,7 @@ class MAPredictor:
         #print(result_list)
         df = pd.DataFrame(result_list).sort_values('accuracy',ascending=False)
         print(df)
+        print(df.info())
         self.shortlist = df
 
     def getShortList(self):
