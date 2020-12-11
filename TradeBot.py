@@ -180,6 +180,7 @@ class TradeBot:
                         take_profit={'limit_price': symbol_price * (1+spread)}
                     )
         if toBuy == True:
+            print("place order")
             api.submit_order(
                 symbol=symbol,
                 qty=1,

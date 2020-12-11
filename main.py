@@ -28,19 +28,15 @@ Q1="""
 """
 def init_vars():
     client = secretmanager_v1.SecretManagerServiceClient()
-
-    name = f"projects/{PRJID}/secrets/APCA_API_KEY_ID/versions/latest"
-    response = client.access_secret_version(request={'name': name})
-    print(response)
-    os.environ["APCA_API_KEY_ID"] = response.payload.data.decode('UTF-8')
-    id = response.payload.data.decode('UTF-8')
-
-    name = f"projects/{PRJID}/secrets/APCA_API_SECRET_KEY/versions/latest"
-    response = client.access_secret_version(request={'name': name})
-    print(response)
-    os.environ["APCA_API_SECRET_KEY"] = response.payload.data.decode('UTF-8')
-    secret = response.payload.data.decode('UTF-8')
-    result = {"APCA_API_KEY_ID": id, "APCA_API_SECRET_KEY": secret, "APCA_API_BASE_URL": "https://paper-api.alpaca.markets" }
+    secrets = ["APCA_API_KEY_ID", "APCA_API_SECRET_KEY", "NEWS_API_KEY"]
+    result = {"APCA_API_BASE_URL": "https://paper-api.alpaca.markets" }
+    for s in secrets:
+        name = f"projects/{PRJID}/secrets/{s}/versions/latest"
+        response = client.access_secret_version(request={'name': name})
+        print(response)
+        os.environ[s] = response.payload.data.decode('UTF-8')
+        result[s] = response.payload.data.decode('UTF-8')
+    print(result)
     return result
 
 def download_files(ticker1,ticker2):
