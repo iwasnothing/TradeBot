@@ -481,6 +481,7 @@ def news_train_predict():
     newspredict.predict()
     df = newspredict.getShortList()
     print(df)
+    print(df.info())
     #client = bigquery.Client()
     # Prepares a reference to the dataset
     #dataset_ref = bigquery_client.dataset('stock_cor')
@@ -496,7 +497,7 @@ def news_train_predict():
         schema=[
             bigquery.SchemaField("stock", bigquery.enums.SqlTypeNames.STRING),
             bigquery.SchemaField("avg", bigquery.enums.SqlTypeNames.FLOAT64),
-            bigquery.SchemaField("count", bigquery.enums.SqlTypeNames.NUMERIC),
+            bigquery.SchemaField("count", bigquery.enums.SqlTypeNames.INT64),
             bigquery.SchemaField("create_dt", bigquery.enums.SqlTypeNames.STRING),
         ]
     )
