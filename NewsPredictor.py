@@ -9,7 +9,7 @@ import turicreate.aggregate as agg
 
 
 class NewsPredictor:
-    def __init__(self,key=None):
+    def __init__(self,key=None,list="/app/list.txt"):
         requests.packages.urllib3.disable_warnings()
         try:
             _create_unverified_https_context = ssl._create_unverified_context
@@ -21,6 +21,8 @@ class NewsPredictor:
             ssl._create_default_https_context = _create_unverified_https_context
         self.key = key
         self.shortlist = []
+        self.list_loc = list
+        self.model_loc = "newsapiprediction.model"
 
 
 def download_news(self,ticker,period=30):
@@ -69,7 +71,7 @@ def training(self):
     all = []
     price = []
     #for i in ['AAPL','FB','GOOG','AMZN','NFLX']:
-    with open('list.txt', 'r') as fp:
+    with open(self.list_loc, 'r') as fp:
         list = fp.read().splitlines()
         for i in list:
             df = self,download_news(i,30)
@@ -99,7 +101,7 @@ def training(self):
     # Create a model using higher max_iterations than default
     model = tc.text_classifier.create(training_data, 'label', features=['text'], max_iterations=100)
     # Save the model for later use in Turi Create
-    model.save('newsapiprediction.model')
+    model.save(self.model_loc)
     # Save predictions to an SArray
     predictions = model.predict(test_data)
     predictions.explore()
@@ -109,7 +111,7 @@ def training(self):
 
 def predict(self):
     all = []
-    with open('list.txt', 'r') as fp:
+    with open(self.list_loc, 'r') as fp:
         list = fp.read().splitlines()
         for i in list:
             df = self.download_news(i,1)
@@ -119,14 +121,20 @@ def predict(self):
     print(data)
     sf = tc.SFrame(data)
 
-    model = tc.load_model('newsapiprediction.model')
+    model = tc.load_model(self.model_loc)
     # Save predictions to an SArray
     predictions = model.predict(sf)
     sf['prediction'] = predictions
     #sf.explore()
     trade_list = sf.groupby(key_column_names='stock', operations={'avg': agg.MEAN('prediction'), 'count': agg.COUNT()})
-    trade_list['label'] = trade_list.apply(lambda x: 'rise' if (x['avg'] >= 0.8 and x['count'] >= 10) else 'drop')
+    #trade_list['label'] = trade_list.apply(lambda x: 'rise' if (x['avg'] >= 0.8 and x['count'] >= 10) else 'drop')
     self.shortlist = trade_list.to_dataframe()
+
+def getShortList(self):
+    return self.shortlist
+
+def getModelLocation(self):
+    return self.model_loc
 
 
 

@@ -6,7 +6,7 @@ import requests
 import ssl
 
 class MAPredictor:
-    def __init__(self):
+    def __init__(self,list="/app/list.txt"):
         requests.packages.urllib3.disable_warnings()
         try:
             _create_unverified_https_context = ssl._create_unverified_context
@@ -16,7 +16,7 @@ class MAPredictor:
         else:
             # Handle target environment that doesn't support HTTPS verification
             ssl._create_default_https_context = _create_unverified_https_context
-
+        self.list_loc = list
 
 
     def load_price(self,tic,period):
@@ -67,7 +67,7 @@ class MAPredictor:
 
     def trainAll(self):
         result_list = []
-        with open('list.txt', 'r') as fp:
+        with open(self.list_loc, 'r') as fp:
             list = fp.read().splitlines()
             for i in list:
         #for i in ['AAPL', 'FB', 'GOOG', 'AMZN', 'NFLX', "SQ", "MTCH", "AYX", "ROKU", "TTD"]:
@@ -78,3 +78,6 @@ class MAPredictor:
         df = pd.DataFrame(result_list).sort_values('accuracy',ascending=False)
         print(df)
         self.shortlist = df
+
+    def getShortList(self):
+        return self.shortlist

@@ -9,6 +9,8 @@ from flask import request
 from zipfile import ZipFile
 from TradeBot import TradeBot
 from StockCorrelation import StockCorrelation
+from MAPredictor import MAPredictor
+from NewsPredictor import NewsPredictor
 from os.path import basename
 from datetime import date
 import json
@@ -66,6 +68,23 @@ def zip_model(dirName):
                 filePath = os.path.join(folderName, filename)
                 # Add file to zip
                 zipObj.write(filePath, basename(filePath))
+def upload_zip(dirName):
+    zip_model(dirName)
+    bucket_name = "iwasnothing-cloudml-job-dir"
+    wdir = "/app/"
+    filename = dirName + ".zip"
+    upload_blob(bucket_name, wdir + filename,  filename)
+def download_zip(dirName):
+    bucket_name = "iwasnothing-cloudml-job-dir"
+    wdir = "/app/"
+    filename = dirName + ".zip"
+    download_blob(bucket_name,  filename, wdir + filename)
+    with ZipFile(wdir+filename, 'r') as zipObj:
+        zipObj.extractall(wdir+dirName)
+    print("after unzip")
+    dirs = os.listdir("/app")
+    for file in dirs:
+        print(file)
 
 def upload_files(ticker1 , ticker2):
     bucket_name = "iwasnothing-cloudml-job-dir"
@@ -442,47 +461,86 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
 
 @app.route('/dayend')
 def sellAll():
-    envelope = request.get_json()
-    if not envelope:
-        msg = 'no Pub/Sub message received'
-        print(f'error: {msg}')
-        return f'Bad Request: {msg}', 400
+    key = init_vars()
+    api = tradeapi.REST(key['APCA_API_KEY_ID'], key['APCA_API_SECRET_KEY'], key['APCA_API_BASE_URL'], 'v2')
+    api.cancel_all_orders()
+    portfolio = api.list_positions()
 
-    if not isinstance(envelope, dict) or 'message' not in envelope:
-        msg = 'invalid Pub/Sub message format'
-        print(f'error: {msg}')
-        return f'Bad Request: {msg}', 400
-
-    pubsub_message = envelope['message']
-
-    name = 'World'
-    if isinstance(pubsub_message, dict) and 'data' in pubsub_message:
-        name = base64.b64decode(pubsub_message['data']).decode('utf-8').strip()
-        print(f'Filter {name}!')
-        msg = json.loads(name)
-        ticker = msg["ticker"]
-        spread = msg['spread']
-        print(ticker)
-        print(spread)
-        key = init_vars()
-        api = tradeapi.REST(key['APCA_API_KEY_ID'], key['APCA_API_SECRET_KEY'], key['APCA_API_BASE_URL'], 'v2')
-        api.cancel_all_orders()
-        portfolio = api.list_positions()
-
-        # Print the quantity of shares for each position.
-        for position in portfolio:
-            print("current position is {}".format(position.qty))
-            try:
-                api.submit_order(
-                    symbol=position.symbol ,
-                    qty=position.qty,
-                    side='sell',
-                    type='market',
-                    time_in_force='day'
-                )
-            except Exception as e:
-                print(e.message)
+    # Print the quantity of shares for each position.
+    for position in portfolio:
+        print("current position is {}".format(position.qty))
+        try:
+            api.submit_order(
+                symbol=position.symbol ,
+                qty=position.qty,
+                side='sell',
+                type='market',
+                time_in_force='day'
+            )
+        except Exception as e:
+            print(e.message)
     return ('', 204)
+
+@app.route('/newspredict')
+def news_train_predict():
+    download_list()
+    key = init_vars()
+    newspredict = NewsPredictor(key=key['NEWS_API_KEY'],list="/app/list.txt")
+    newspredict.training()
+    upload_zip(newspredict.getModelLocation())
+    download_zip(newspredict.getModelLocation())
+    newspredict.predict()
+    df = newspredict.getShortList()
+    print(df)
+    #client = bigquery.Client()
+    # Prepares a reference to the dataset
+    #dataset_ref = bigquery_client.dataset('stock_cor')
+    #table_ref = dataset_ref.table('news_predict_short_list')
+    #table = bigquery_client.get_table(table_ref)  # API call
+    project_id = "iwasnothing-self-learning"
+    table_id = project_id + ".stock_cor.news_predict_short_list"
+    client = bigquery.Client()
+    today = date.today()
+    todstr = today.strftime("%Y-%m-%d")
+    df['create_dt'] = todstr
+    job_config = bigquery.LoadJobConfig(
+        schema=[
+            bigquery.SchemaField("stock", bigquery.enums.SqlTypeNames.STRING),
+            bigquery.SchemaField("avg", bigquery.enums.SqlTypeNames.NUMERIC),
+            bigquery.SchemaField("count", bigquery.enums.SqlTypeNames.NUMERIC),
+            bigquery.SchemaField("create_dt", bigquery.enums.SqlTypeNames.STRING),
+        ]
+    )
+    job = client.load_table_from_dataframe(
+        df, table_id, job_config=job_config
+    )  # Make an API request.
+    print(job.result())
+
+@app.route('/mapredict')
+def ma_train_predict():
+    download_list()
+    #key = init_vars()
+    ma = MAPredictor("/app/list.txt")
+    ma.trainAll()
+    df = ma.getShortList()
+    project_id = "iwasnothing-self-learning"
+    table_id = project_id + ".stock_cor.ma_predict_short_list"
+    client = bigquery.Client()
+    today = date.today()
+    todstr = today.strftime("%Y-%m-%d")
+    df['create_dt'] = todstr
+    job_config = bigquery.LoadJobConfig(
+        schema=[
+            bigquery.SchemaField("stock", bigquery.enums.SqlTypeNames.STRING),
+            bigquery.SchemaField("accuracy", bigquery.enums.SqlTypeNames.NUMERIC),
+            bigquery.SchemaField("prediction", bigquery.enums.SqlTypeNames.STRING),
+            bigquery.SchemaField("create_dt", bigquery.enums.SqlTypeNames.STRING),
+        ]
+    )
+    job = client.load_table_from_dataframe(
+        df, table_id, job_config=job_config
+    )  # Make an API request.
+    print(job.result())
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
