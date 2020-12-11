@@ -503,7 +503,8 @@ def news_train_predict():
     job = client.load_table_from_dataframe(
         df, table_id, job_config=job_config
     )  # Make an API request.
-    print(job.result())
+    job.result()
+    return ('', 204)
 
 @app.route('/mapredict')
 def ma_train_predict():
@@ -529,7 +530,8 @@ def ma_train_predict():
     job = client.load_table_from_dataframe(
         df, table_id, job_config=job_config
     )  # Make an API request.
-    print(job.result())
+    job.result()
+    return ('', 204)
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
