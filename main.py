@@ -348,6 +348,30 @@ def train():
         return 'Hello {}!'.format(str(result))
     return ('', 204)
 
+def place_order(ticker,sperad):
+    key = init_vars()
+    api = tradeapi.REST(key['APCA_API_KEY_ID'], key['APCA_API_SECRET_KEY'], key['APCA_API_BASE_URL'], 'v2')
+    #account = api.get_account()
+    ticker_bars = api.get_barset(ticker, 'minute', 1).df.iloc[0]
+    ticker_price = ticker_bars[ticker]['close']
+    print(ticker_price)
+
+    # We could buy a position and add a stop-loss and a take-profit of 5 %
+    try:
+        api.submit_order(
+            symbol=ticker,
+            qty=1,
+            side='buy',
+            type='market',
+            time_in_force='gtc',
+            order_class='bracket',
+            stop_loss={'stop_price': ticker_price * (1 - spread),
+                        'limit_price': ticker_price * (1 - spread) * 0.95},
+            take_profit={'limit_price': ticker_price * (1 + spread)}
+        )
+    except Exception as e:
+        print(e)
+
 
 @app.route('/trade', methods=['POST'])
 def trade():
@@ -373,29 +397,11 @@ def trade():
         spread = msg['spread']
         print(ticker)
         print(spread)
-        key = init_vars()
-        api = tradeapi.REST(key['APCA_API_KEY_ID'], key['APCA_API_SECRET_KEY'], key['APCA_API_BASE_URL'], 'v2')
-        #account = api.get_account()
-        ticker_bars = api.get_barset(ticker, 'minute', 1).df.iloc[0]
-        ticker_price = ticker_bars[ticker]['close']
-        print(ticker_price)
-
-        # We could buy a position and add a stop-loss and a take-profit of 5 %
-        try:
-            api.submit_order(
-                symbol=ticker,
-                qty=1,
-                side='buy',
-                type='market',
-                time_in_force='gtc',
-                order_class='bracket',
-                stop_loss={'stop_price': ticker_price * (1 - spread),
-                           'limit_price': ticker_price * (1 - spread) * 0.95},
-                take_profit={'limit_price': ticker_price * (1 + spread)}
-            )
-        except Exception as e:
-            print(e)
+        place_order(ticker,spread)
     return ('', 204)
+
+
+    
 
 def download_blob(bucket_name, source_blob_name, destination_file_name):
     """Downloads a blob from the bucket."""
@@ -548,9 +554,8 @@ def buyperday():
 
     print("The query data:")
     for row in query_job:
-        for val in row:
-            print(val)
         print(row[0])
+        place_order(row[0],0.03)
     return ('', 204)
 
 if __name__ == "__main__":
