@@ -220,15 +220,9 @@ def predictAll():
     topic_path = publisher.topic_path(project_id, topic_id)
     client = bigquery.Client()
 
-    today = date.today()
-    todstr = today.strftime("%Y-%m-%d")
-    query = """
-        SELECT ticker1,ticker2,rmse,accuracy,future 
-        FROM `iwasnothing-self-learning.stock_cor.stock_cor_short_list` 
-        WHERE DATE(create_dt) = \"{}\" ORDER BY accuracy DESC LIMIT 3
-    """.format(todstr)
+    #today = date.today()
+    #todstr = today.strftime("%Y-%m-%d")
     query_job = client.query(Q1)  # Make an API request.
-
     print("The query data:")
     for row in query_job:
         for val in row:
@@ -292,13 +286,8 @@ def trainAll():
     topic_path = publisher.topic_path(project_id, topic_id)
     client = bigquery.Client()
 
-    today = date.today()
-    todstr = today.strftime("%Y-%m-%d")
-    query = """
-        SELECT ticker1,ticker2,rmse,accuracy,future 
-        FROM `iwasnothing-self-learning.stock_cor.stock_cor_short_list` 
-        WHERE DATE(create_dt) = \"{}\" ORDER BY accuracy DESC LIMIT 3
-    """.format(todstr)
+    #today = date.today()
+    #todstr = today.strftime("%Y-%m-%d")
     query_job = client.query(Q1)  # Make an API request.
 
     print("The query data:")
@@ -405,7 +394,7 @@ def trade():
                 take_profit={'limit_price': ticker_price * (1 + spread)}
             )
         except Exception as e:
-            print(e.message)
+            print(e)
     return ('', 204)
 
 def download_blob(bucket_name, source_blob_name, destination_file_name):
@@ -478,7 +467,7 @@ def sellAll():
                 time_in_force='day'
             )
         except Exception as e:
-            print(e.message)
+            print(e)
     return ('', 204)
 
 @app.route('/newspredict')
