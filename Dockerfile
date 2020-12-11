@@ -30,6 +30,7 @@ RUN pip install scikit-learn
 RUN pip install matplotlib
 RUN pip install yfinance
 RUN pip install newsapi-python
+RUN pip install pyarrow
 
 COPY . ./
 # Run the web service on container startup. Here we use the gunicorn

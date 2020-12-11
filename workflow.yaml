@@ -1,0 +1,12 @@
+- newPredictor:
+    call: http.get
+    args:
+        url: https://helloworld-s3yk5iivva-uc.a.run.app/newspredict
+        auth:
+            type: OIDC
+- maPredictor:
+    call: http.get
+    args:
+        url: https://helloworld-s3yk5iivva-uc.a.run.app/mapredict
+        auth:
+            type: OIDC
