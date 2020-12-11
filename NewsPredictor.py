@@ -74,7 +74,7 @@ class NewsPredictor:
         with open(self.list_loc, 'r') as fp:
             list = fp.read().splitlines()
             for i in list:
-                df = self,download_news(i,30)
+                df = self.download_news(i,30)
                 all.append(df)
                 df_tic = self.load_price(i,period)
                 print(df_tic)
