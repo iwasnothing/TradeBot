@@ -352,9 +352,11 @@ def place_order(ticker,sperad):
     key = init_vars()
     api = tradeapi.REST(key['APCA_API_KEY_ID'], key['APCA_API_SECRET_KEY'], key['APCA_API_BASE_URL'], 'v2')
     #account = api.get_account()
-    ticker_bars = api.get_barset(ticker, 'minute', 1).df.iloc[0]
-    ticker_price = ticker_bars[ticker]['close']
-    print(ticker_price)
+    #ticker_bars = api.get_barset(ticker, 'minute', 1).df.iloc[0]
+    #ticker_price = ticker_bars[ticker]['close']
+    q=api.get_last_quote('FB')
+    ticker_price = q.bidprice
+    print("place order at quote ",ticker_price)
 
     # We could buy a position and add a stop-loss and a take-profit of 5 %
     try:
@@ -553,10 +555,14 @@ def buyperday():
     query_job = client.query(qstr)  # Make an API request.
 
     print("The query data:")
+    rtnlist = []
     for row in query_job:
-        print(row[0])
-        place_order(row[0],0.03)
-    return ('', 204)
+        print("buyperday selected ",row[0])
+        rtnlist.append(row[0])
+        place_order(row[0],0.05)
+    rtnstr = ",".join(rtnlist)
+    print("buyperday totally selected "rtnstr)
+    return (rtnstr, 204)
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
