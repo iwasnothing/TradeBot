@@ -485,7 +485,14 @@ def news_train_predict():
     newspredict = NewsPredictor(key=key['NEWS_API_KEY'],list="/app/list.txt")
     newspredict.training()
     upload_zip(newspredict.getModelLocation())
+    today = date.today()
+    todstr = today.strftime("%Y-%m-%d")
+    bucket_name = "iwasnothing-cloudml-job-dir"
+    wdir = "/app/"
+    filename = 'newsout-'+todstr' + ".zip"
+    upload_blob(bucket_name, wdir + filename,  filename)
     download_zip(newspredict.getModelLocation())
+    
     newspredict.predict()
     df = newspredict.getShortList()
     print(df)

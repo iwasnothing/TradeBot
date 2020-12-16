@@ -92,6 +92,9 @@ class NewsPredictor:
         print(stock_data)
         combined_df = pd.merge(left=text_data, right=stock_data, how='left', left_on=['stock','next-day'], right_on=['stock','Date']).dropna()
         print(combined_df)
+        today = date.today()
+        todstr = today.strftime("%Y-%m-%d")
+        combined_df.to_csv('newsout-'+todstr'.zip', index=False,compression='zip')
         sf = tc.SFrame(combined_df)
         sf['label'] = sf.apply(lambda x: int(x['rise']))
 
