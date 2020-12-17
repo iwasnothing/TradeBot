@@ -348,7 +348,7 @@ def train():
         return 'Hello {}!'.format(str(result))
     return ('', 204)
 
-def place_order(ticker,sperad):
+def place_order(ticker,spread):
     key = init_vars()
     api = tradeapi.REST(key['APCA_API_KEY_ID'], key['APCA_API_SECRET_KEY'], key['APCA_API_BASE_URL'], 'v2')
     #account = api.get_account()
@@ -568,7 +568,7 @@ def buyperday():
         rtnlist.append(row[0])
         place_order(row[0],0.05)
     rtnstr = ",".join(rtnlist)
-    print("buyperday totally selected "rtnstr)
+    print("buyperday totally selected ",rtnstr)
     return (rtnstr, 204)
 
 if __name__ == "__main__":
