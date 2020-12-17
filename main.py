@@ -489,7 +489,7 @@ def news_train_predict():
     todstr = today.strftime("%Y-%m-%d")
     bucket_name = "iwasnothing-cloudml-job-dir"
     wdir = "/app/"
-    filename = 'newsout-'+todstr' + ".zip"
+    filename = 'newsout-'+todstr + ".zip"
     upload_blob(bucket_name, wdir + filename,  filename)
     download_zip(newspredict.getModelLocation())
     
