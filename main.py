@@ -354,13 +354,13 @@ def place_order(ticker,spread):
     #account = api.get_account()
     #ticker_bars = api.get_barset(ticker, 'minute', 1).df.iloc[0]
     #ticker_price = ticker_bars[ticker]['close']
-    q=api.get_last_quote('FB')
+    q=api.get_last_quote(ticker)
     ticker_price = q.bidprice
-    print("place order at quote ",ticker_price)
+    print("place order for ",ticker,ticker_price)
 
     # We could buy a position and add a stop-loss and a take-profit of 5 %
     try:
-        api.submit_order(
+        r = api.submit_order(
             symbol=ticker,
             qty=1,
             side='buy',
@@ -371,6 +371,7 @@ def place_order(ticker,spread):
                         'limit_price': ticker_price * (1 - spread) * 0.95},
             take_profit={'limit_price': ticker_price * (1 + spread)}
         )
+        print("place order returned ",r)
     except Exception as e:
         print(e)
 
@@ -467,13 +468,14 @@ def sellAll():
     for position in portfolio:
         print("current position is {}".format(position.qty))
         try:
-            api.submit_order(
+            r = api.submit_order(
                 symbol=position.symbol ,
                 qty=position.qty,
                 side='sell',
                 type='market',
                 time_in_force='day'
             )
+            print("dayend sell all ",r)
         except Exception as e:
             print(e)
     return ('', 204)
