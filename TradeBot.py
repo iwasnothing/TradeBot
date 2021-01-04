@@ -150,6 +150,9 @@ class TradeBot:
         symbol_price = symbol_bars[symbol]['close']
         spread = (price - symbol_price) / symbol_price
         print("predicted spread is {}".format(spread))
+        q=api.get_last_quote(symbol)
+        symbol_price = q.bidprice
+        print("market price is {}".format(symbol_price))
         toBuy = False
         if spread < 0 :
             print("No profit")
