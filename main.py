@@ -9,8 +9,6 @@ from flask import request
 from zipfile import ZipFile
 from TradeBot import TradeBot
 from StockCorrelation import StockCorrelation
-from MAPredictor import MAPredictor
-from NewsPredictor import NewsPredictor
 from os.path import basename
 from datetime import date
 import json
@@ -26,20 +24,21 @@ Q1="""
         SELECT ticker1,ticker2,accuracy/(10*rmse) as score
         FROM `iwasnothing-self-learning.stock_cor.stock_cor_short_list` 
         where create_dt in (select create_dt from dateList limit 1)
-        ORDER BY score desc ) LIMIT 2
+        ORDER BY score desc ) LIMIT 3
 """
 def init_vars():
     client = secretmanager_v1.SecretManagerServiceClient()
-    secrets = ["APCA_API_KEY_ID", "APCA_API_SECRET_KEY", "NEWS_API_KEY"]
-    result = {"APCA_API_BASE_URL": "https://paper-api.alpaca.markets" }
-    for s in secrets:
-        name = f"projects/{PRJID}/secrets/{s}/versions/latest"
-        response = client.access_secret_version(request={'name': name})
-        print(response)
-        os.environ[s] = response.payload.data.decode('UTF-8')
-        result[s] = response.payload.data.decode('UTF-8')
-    print(result)
-    return result
+
+    name = f"projects/{PRJID}/secrets/APCA_API_KEY_ID/versions/latest"
+    response = client.access_secret_version(request={'name': name})
+    print(response)
+    os.environ["APCA_API_KEY_ID"] = response.payload.data.decode('UTF-8')
+
+    name = f"projects/{PRJID}/secrets/APCA_API_SECRET_KEY/versions/latest"
+    response = client.access_secret_version(request={'name': name})
+    print(response)
+    os.environ["APCA_API_SECRET_ID"] = response.payload.data.decode('UTF-8')
+
 
 def download_files(ticker1,ticker2):
     bucket_name = "iwasnothing-cloudml-job-dir"
@@ -48,11 +47,7 @@ def download_files(ticker1,ticker2):
     filename = prefix + "regression.zip"
     download_blob(bucket_name,  filename, wdir + filename)
     with ZipFile(wdir+filename, 'r') as zipObj:
-        zipObj.extractall('/app/'+prefix+"regression")
-    print("after unzip")
-    dirs = os.listdir("/app")
-    for file in dirs:
-        print(file)
+        zipObj.extractall()
     filename = prefix + "scalerX.gz"
     download_blob(bucket_name,  filename, wdir + filename)
     filename = prefix + "scalerY.gz"
@@ -68,23 +63,6 @@ def zip_model(dirName):
                 filePath = os.path.join(folderName, filename)
                 # Add file to zip
                 zipObj.write(filePath, basename(filePath))
-def upload_zip(dirName):
-    zip_model(dirName)
-    bucket_name = "iwasnothing-cloudml-job-dir"
-    wdir = "/app/"
-    filename = dirName + ".zip"
-    upload_blob(bucket_name, wdir + filename,  filename)
-def download_zip(dirName):
-    bucket_name = "iwasnothing-cloudml-job-dir"
-    wdir = "/app/"
-    filename = dirName + ".zip"
-    download_blob(bucket_name,  filename, wdir + filename)
-    with ZipFile(wdir+filename, 'r') as zipObj:
-        zipObj.extractall(wdir+dirName)
-    print("after unzip")
-    dirs = os.listdir("/app")
-    for file in dirs:
-        print(file)
 
 def upload_files(ticker1 , ticker2):
     bucket_name = "iwasnothing-cloudml-job-dir"
@@ -196,7 +174,7 @@ def filter():
         today = date.today()
         todstr = today.strftime("%Y-%m-%d")
         print(ticker1,ticker2,rmse,acc,future,today)
-        if rmse < 0.05 and acc > 0.5:
+        if rmse <= 0.04 and acc >= 0.65:
             print("insert stock")
             bigquery_client = bigquery.Client()
             # Prepares a reference to the dataset
@@ -220,9 +198,15 @@ def predictAll():
     topic_path = publisher.topic_path(project_id, topic_id)
     client = bigquery.Client()
 
-    #today = date.today()
-    #todstr = today.strftime("%Y-%m-%d")
+    today = date.today()
+    todstr = today.strftime("%Y-%m-%d")
+    query = """
+        SELECT ticker1,ticker2,rmse,accuracy,future 
+        FROM `iwasnothing-self-learning.stock_cor.stock_cor_short_list` 
+        WHERE DATE(create_dt) = \"{}\" ORDER BY accuracy DESC LIMIT 3
+    """.format(todstr)
     query_job = client.query(Q1)  # Make an API request.
+
     print("The query data:")
     for row in query_job:
         for val in row:
@@ -264,13 +248,13 @@ def predict():
         ticker1 = req_json['ticker1']
         ticker2 = req_json['ticker2']
         print(ticker1,ticker2)
-        key = init_vars()
+        init_vars()
         download_files(ticker1,ticker2)
         #ticker1='ZM'
         #ticker2='LBTYK'
         win = 5
         past = 6
-        bot = TradeBot(ticker1,ticker2,win,past,key)
+        bot = TradeBot(ticker1,ticker2,win,past)
         result = bot.predictPrice()
         print(result)
         bot.buy(ticker2,result)
@@ -286,8 +270,13 @@ def trainAll():
     topic_path = publisher.topic_path(project_id, topic_id)
     client = bigquery.Client()
 
-    #today = date.today()
-    #todstr = today.strftime("%Y-%m-%d")
+    today = date.today()
+    todstr = today.strftime("%Y-%m-%d")
+    query = """
+        SELECT ticker1,ticker2,rmse,accuracy,future 
+        FROM `iwasnothing-self-learning.stock_cor.stock_cor_short_list` 
+        WHERE DATE(create_dt) = \"{}\" ORDER BY accuracy DESC LIMIT 3
+    """.format(todstr)
     query_job = client.query(Q1)  # Make an API request.
 
     print("The query data:")
@@ -334,12 +323,12 @@ def train():
         ticker1 = req_json['ticker1']
         ticker2 = req_json['ticker2']
         print(ticker1,ticker2)
-        key = init_vars()
+        init_vars()
         #ticker1='ZM'
         #ticker2='LBTYK'
         win = 5
         past = 6
-        bot = TradeBot(ticker1,ticker2,win,past, key)
+        bot = TradeBot(ticker1,ticker2,win,past)
         result = bot.pair_loss()
         print(result)
         prefix = ticker1 + "-" + ticker2 + "-"
@@ -347,33 +336,6 @@ def train():
         upload_files(ticker1,ticker2)
         return 'Hello {}!'.format(str(result))
     return ('', 204)
-
-def place_order(ticker,spread):
-    key = init_vars()
-    api = tradeapi.REST(key['APCA_API_KEY_ID'], key['APCA_API_SECRET_KEY'], key['APCA_API_BASE_URL'], 'v2')
-    #account = api.get_account()
-    #ticker_bars = api.get_barset(ticker, 'minute', 1).df.iloc[0]
-    #ticker_price = ticker_bars[ticker]['close']
-    q=api.get_last_quote(ticker)
-    ticker_price = q.bidprice
-    print("place order for ",ticker,ticker_price)
-
-    # We could buy a position and add a stop-loss and a take-profit of 5 %
-    try:
-        r = api.submit_order(
-            symbol=ticker,
-            qty=1,
-            side='buy',
-            type='market',
-            time_in_force='gtc',
-            order_class='bracket',
-            stop_loss={'stop_price': ticker_price * (1 - spread),
-                        'limit_price': ticker_price * (1 - spread) * 0.95},
-            take_profit={'limit_price': ticker_price * (1 + spread)}
-        )
-        print("place order returned ",r)
-    except Exception as e:
-        print(e)
 
 
 @app.route('/trade', methods=['POST'])
@@ -397,14 +359,32 @@ def trade():
         print(f'Filter {name}!')
         msg = json.loads(name)
         ticker = msg["ticker"]
-        spread = msg['spread']
+        #spread = msg['spread']
+        spread = 0.4
         print(ticker)
         print(spread)
-        place_order(ticker,spread)
+        api = tradeapi.REST()
+        account = api.get_account()
+        ticker_bars = api.get_barset(ticker, 'minute', 1).df.iloc[0]
+        ticker_price = ticker_bars[ticker]['close']
+        print(ticker_price)
+
+        # We could buy a position and add a stop-loss and a take-profit of 5 %
+        try:
+            api.submit_order(
+                symbol=ticker,
+                qty=1,
+                side='buy',
+                type='market',
+                time_in_force='gtc',
+                order_class='bracket',
+                stop_loss={'stop_price': ticker_price * (1 - spread),
+                           'limit_price': ticker_price * (1 - spread) * 0.95},
+                take_profit={'limit_price': ticker_price * (1 + spread)}
+            )
+        except Exception as e:
+            print(e.message)
     return ('', 204)
-
-
-    
 
 def download_blob(bucket_name, source_blob_name, destination_file_name):
     """Downloads a blob from the bucket."""
@@ -413,12 +393,7 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     # destination_file_name = "local/path/to/file"
 
     storage_client = storage.Client()
-    print("dowbload_blob")
-    print(bucket_name, source_blob_name, destination_file_name)
-    if os.path.exists(destination_file_name):
-        os.remove(destination_file_name)
-    else:
-        print(destination_file_name + " doesn't exists")
+
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(source_blob_name)
     if blob.exists():
@@ -428,14 +403,8 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
             if ret is not None:
                 print("Blob {} downloaded to {}.".format(source_blob_name, destination_file_name))
                 return True
-            else:
-                dirs = os.listdir("/app")
-                for file in dirs:
-                    print(file)
         except:
             return False
-    else:
-        print("blob not exist")
     return False
 
 
@@ -456,122 +425,6 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
             source_file_name, destination_blob_name
         )
     )
-
-@app.route('/dayend')
-def sellAll():
-    key = init_vars()
-    api = tradeapi.REST(key['APCA_API_KEY_ID'], key['APCA_API_SECRET_KEY'], key['APCA_API_BASE_URL'], 'v2')
-    api.cancel_all_orders()
-    portfolio = api.list_positions()
-
-    # Print the quantity of shares for each position.
-    for position in portfolio:
-        print("current position is {}".format(position.qty))
-        try:
-            r = api.submit_order(
-                symbol=position.symbol ,
-                qty=position.qty,
-                side='sell',
-                type='market',
-                time_in_force='day'
-            )
-            print("dayend sell all ",r)
-        except Exception as e:
-            print(e)
-    return ('', 204)
-
-@app.route('/newspredict')
-def news_train_predict():
-    download_list()
-    key = init_vars()
-    newspredict = NewsPredictor(key=key['NEWS_API_KEY'],list="/app/list.txt")
-    newspredict.training()
-    upload_zip(newspredict.getModelLocation())
-    today = date.today()
-    todstr = today.strftime("%Y-%m-%d")
-    bucket_name = "iwasnothing-cloudml-job-dir"
-    wdir = "/app/"
-    filename = 'newsout-'+todstr + ".zip"
-    upload_blob(bucket_name, wdir + filename,  filename)
-    download_zip(newspredict.getModelLocation())
-    
-    newspredict.predict()
-    df = newspredict.getShortList()
-    print(df)
-    print(df.info())
-    #client = bigquery.Client()
-    # Prepares a reference to the dataset
-    #dataset_ref = bigquery_client.dataset('stock_cor')
-    #table_ref = dataset_ref.table('news_predict_short_list')
-    #table = bigquery_client.get_table(table_ref)  # API call
-    project_id = "iwasnothing-self-learning"
-    table_id = project_id + ".stock_cor.news_predict_short_list"
-    client = bigquery.Client()
-    today = date.today()
-    todstr = today.strftime("%Y-%m-%d")
-    df['create_dt'] = todstr
-    job_config = bigquery.LoadJobConfig(
-        schema=[
-            bigquery.SchemaField("stock", bigquery.enums.SqlTypeNames.STRING),
-            bigquery.SchemaField("avg", bigquery.enums.SqlTypeNames.FLOAT64),
-            bigquery.SchemaField("count", bigquery.enums.SqlTypeNames.INT64),
-            bigquery.SchemaField("create_dt", bigquery.enums.SqlTypeNames.STRING),
-        ]
-    )
-    job = client.load_table_from_dataframe(
-        df, table_id, job_config=job_config
-    )  # Make an API request.
-    job.result()
-    return ('', 204)
-
-@app.route('/mapredict')
-def ma_train_predict():
-    download_list()
-    #key = init_vars()
-    ma = MAPredictor("/app/list.txt")
-    ma.trainAll()
-    df = ma.getShortList()
-    project_id = "iwasnothing-self-learning"
-    table_id = project_id + ".stock_cor.ma_predict_short_list"
-    client = bigquery.Client()
-    today = date.today()
-    todstr = today.strftime("%Y-%m-%d")
-    df['create_dt'] = todstr
-    job_config = bigquery.LoadJobConfig(
-        schema=[
-            bigquery.SchemaField("stock", bigquery.enums.SqlTypeNames.STRING),
-            bigquery.SchemaField("accuracy", bigquery.enums.SqlTypeNames.FLOAT64),
-            bigquery.SchemaField("prediction", bigquery.enums.SqlTypeNames.STRING),
-            bigquery.SchemaField("create_dt", bigquery.enums.SqlTypeNames.STRING),
-        ]
-    )
-    job = client.load_table_from_dataframe(
-        df, table_id, job_config=job_config
-    )  # Make an API request.
-    job.result()
-    return ('', 204)
-
-@app.route('/buyperday', methods=['POST'])
-def buyperday():
-    envelope = request.get_json()
-    # Construct a BigQuery client object.
-    #project_id = "iwasnothing-self-learning"
-    client = bigquery.Client()
-    print(envelope)
-    qstr = envelope['query']
-    #today = date.today()
-    #todstr = today.strftime("%Y-%m-%d")
-    query_job = client.query(qstr)  # Make an API request.
-
-    print("The query data:")
-    rtnlist = []
-    for row in query_job:
-        print("buyperday selected ",row[0])
-        rtnlist.append(row[0])
-        place_order(row[0],0.05)
-    rtnstr = ",".join(rtnlist)
-    print("buyperday totally selected ",rtnstr)
-    return (rtnstr, 204)
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))

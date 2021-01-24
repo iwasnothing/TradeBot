@@ -10,7 +10,7 @@ import time
 import joblib
 
 class TradeBot:
-    def __init__(self,ticker1='ZM',ticker2='LBTYK',win=5,past=6, key=None):
+    def __init__(self,ticker1='ZM',ticker2='LBTYK',win=5,past=6):
         requests.packages.urllib3.disable_warnings()
         try:
             _create_unverified_https_context = ssl._create_unverified_context
@@ -25,8 +25,6 @@ class TradeBot:
         self.ticker2 = ticker2
         self.win = win
         self.period = past * win
-        self.key = key
-           
 
     def accuracy(self, x_valid, rnn_forecast):
         a = []
@@ -128,8 +126,8 @@ class TradeBot:
         return future[0][0]
 
     def load_data(self,ticker,period):
-        api = tradeapi.REST(self.key['APCA_API_KEY_ID'], self.key['APCA_API_SECRET_KEY'], self.key['APCA_API_BASE_URL'], 'v2')
-        #  {"APCA_API_KEY_ID": id, "APCA_API_SECRET_KEY": secret, "APCA_API_BASE_URL": "https://paper-api.alpaca.markets" }
+        api = tradeapi.REST()
+
         # Get daily price data for AAPL over the last 5 trading days.
         barset = api.get_barset(ticker, 'minute', limit=period)
         bars = barset[ticker]
@@ -145,14 +143,12 @@ class TradeBot:
         return df
 
     def buy(self,symbol,price):
-        api = tradeapi.REST(self.key['APCA_API_KEY_ID'], self.key['APCA_API_SECRET_KEY'], self.key['APCA_API_BASE_URL'], 'v2')
+        api = tradeapi.REST()
         symbol_bars = api.get_barset(symbol, 'minute', 1).df.iloc[0]
         symbol_price = symbol_bars[symbol]['close']
-        spread = (price - symbol_price) / symbol_price
+        #spread = (price - symbol_price) / symbol_price
+        spread = 0.4
         print("predicted spread is {}".format(spread))
-        q=api.get_last_quote(symbol)
-        symbol_price = q.bidprice
-        print("market price is {}".format(symbol_price))
         toBuy = False
         if spread < 0 :
             print("No profit")
@@ -161,7 +157,6 @@ class TradeBot:
             #position = api.get_position(symbol)
         # Get a list of all of our positions.
         toBuy = True
-        api.cancel_all_orders()
         portfolio = api.list_positions()
 
         # Print the quantity of shares for each position.
@@ -176,23 +171,21 @@ class TradeBot:
                         qty=1,
                         side='buy',
                         type='market',
-                        time_in_force='day',
+                        time_in_force='gtc',
                         order_class='bracket',
                         stop_loss={'stop_price': symbol_price * (1-spread),
                                    'limit_price': symbol_price * (1-spread)*0.95},
                         take_profit={'limit_price': symbol_price * (1+spread)}
                     )
         if toBuy == True:
-            print("place order")
             api.submit_order(
                 symbol=symbol,
                 qty=1,
                 side='buy',
                 type='market',
-                time_in_force='day',
+                time_in_force='gtc',
                 order_class='bracket',
                 stop_loss={'stop_price': symbol_price * (1 - spread),
                            'limit_price': symbol_price * (1 - spread) * 0.95},
                 take_profit={'limit_price': symbol_price * (1 + spread)}
             )
-

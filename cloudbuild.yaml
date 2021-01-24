@@ -9,13 +9,13 @@ steps:
       - '-f'
       - Dockerfile
     id: Build
-    timeout: 1800s
+    timeout: 3600s
   - name: gcr.io/cloud-builders/docker
     args:
       - push
       - '$_GCR_HOSTNAME/$PROJECT_ID/$_SERVICE_NAME:$COMMIT_SHA'
     id: Push
-    timeout: 1800s
+    timeout: 3600s
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
     args:
       - run
