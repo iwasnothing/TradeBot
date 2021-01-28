@@ -33,12 +33,14 @@ def init_vars():
     response = client.access_secret_version(request={'name': name})
     print(response)
     os.environ["APCA_API_KEY_ID"] = response.payload.data.decode('UTF-8')
+    key = response.payload.data.decode('UTF-8')
 
     name = f"projects/{PRJID}/secrets/APCA_API_SECRET_KEY/versions/latest"
     response = client.access_secret_version(request={'name': name})
     print(response)
     os.environ["APCA_API_SECRET_ID"] = response.payload.data.decode('UTF-8')
-
+    secret = response.payload.data.decode('UTF-8')
+    return (key,secret)
 
 def download_files(ticker1,ticker2):
     bucket_name = "iwasnothing-cloudml-job-dir"
@@ -248,7 +250,7 @@ def predict():
         ticker1 = req_json['ticker1']
         ticker2 = req_json['ticker2']
         print(ticker1,ticker2)
-        init_vars()
+        (key,secret) = init_vars()
         download_files(ticker1,ticker2)
         #ticker1='ZM'
         #ticker2='LBTYK'
@@ -257,7 +259,7 @@ def predict():
         bot = TradeBot(ticker1,ticker2,win,past)
         result = bot.predictPrice()
         print(result)
-        bot.buy(ticker2,result)
+        bot.buy(ticker2,result, key, secret)
         return 'Hello {}!'.format(str(result))
     return ('', 204)
 
@@ -323,7 +325,7 @@ def train():
         ticker1 = req_json['ticker1']
         ticker2 = req_json['ticker2']
         print(ticker1,ticker2)
-        init_vars()
+        
         #ticker1='ZM'
         #ticker2='LBTYK'
         win = 5
@@ -363,11 +365,9 @@ def trade():
         spread = 0.4
         print(ticker)
         print(spread)
-        init_vars()
-        api = tradeapi.REST()
-        account = api.get_account()
-        ticker_bars = api.get_barset(ticker, 'minute', 1).df.iloc[0]
-        ticker_price = ticker_bars[ticker]['close']
+        (API_KEY,API_SECRET) = init_vars()
+        APCA_API_BASE_URL = "https://paper-api.alpaca.markets"
+        api = tradeapi.REST(API_KEY, API_SECRET, APCA_API_BASE_URL, 'v2')
         ticker_price = api.get_last_quote(ticker)
         ticker_price = ticker_price.askprice
         print(ticker_price)
@@ -391,8 +391,9 @@ def trade():
 
 @app.route('/dayend', methods=['GET'])
 def sellAll():
-    init_vars()
-    api = tradeapi.REST()
+    (API_KEY,API_SECRET) = init_vars()
+    APCA_API_BASE_URL = "https://paper-api.alpaca.markets"
+    api = tradeapi.REST(API_KEY, API_SECRET, APCA_API_BASE_URL, 'v2')
     portfolio = api.list_positions()
     for position in portfolio:
         print("{} shares of {}".format(position.qty, position.symbol))

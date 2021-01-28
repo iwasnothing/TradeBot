@@ -142,13 +142,12 @@ class TradeBot:
         #print(df)
         return df
 
-    def buy(self,symbol,price):
-        api = tradeapi.REST()
-        symbol_bars = api.get_barset(symbol, 'minute', 1).df.iloc[0]
-        symbol_price = symbol_bars[symbol]['close']
+    def buy(self,symbol,price,API_KEY,API_SECRET):
+        APCA_API_BASE_URL = "https://paper-api.alpaca.markets"
+        api = tradeapi.REST(API_KEY, API_SECRET, APCA_API_BASE_URL, 'v2')
         symbol_price = api.get_last_quote(symbol)
-        symbol_price = ticker_price.askprice
-        #spread = (price - symbol_price) / symbol_price
+        symbol_price = symbol_price.askprice
+        spread = (price - symbol_price) / symbol_price
         
         print("predicted spread is {}".format(spread))
         toBuy = False
