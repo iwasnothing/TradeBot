@@ -363,10 +363,13 @@ def trade():
         spread = 0.4
         print(ticker)
         print(spread)
+        init_vars()
         api = tradeapi.REST()
         account = api.get_account()
         ticker_bars = api.get_barset(ticker, 'minute', 1).df.iloc[0]
         ticker_price = ticker_bars[ticker]['close']
+        ticker_price = api.get_last_quote(ticker)
+        ticker_price = ticker_price.askprice
         print(ticker_price)
 
         # We could buy a position and add a stop-loss and a take-profit of 5 %
@@ -384,6 +387,24 @@ def trade():
             )
         except Exception as e:
             print(e.message)
+    return ('', 204)
+
+@app.route('/dayend', methods=['GET'])
+def sellAll():
+    init_vars()
+    api = tradeapi.REST()
+    portfolio = api.list_positions()
+    for position in portfolio:
+        print("{} shares of {}".format(position.qty, position.symbol))
+        api.submit_order(
+            symbol=position.symbol,
+            qty=position.qty,
+            side='sell',
+            type='market',
+            time_in_force='gtc'
+        )
+    print("cancel order")
+    api.cancel_all_orders()
     return ('', 204)
 
 def download_blob(bucket_name, source_blob_name, destination_file_name):

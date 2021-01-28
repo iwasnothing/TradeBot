@@ -146,8 +146,10 @@ class TradeBot:
         api = tradeapi.REST()
         symbol_bars = api.get_barset(symbol, 'minute', 1).df.iloc[0]
         symbol_price = symbol_bars[symbol]['close']
+        symbol_price = api.get_last_quote(symbol)
+        symbol_price = ticker_price.askprice
         #spread = (price - symbol_price) / symbol_price
-        spread = 0.4
+        
         print("predicted spread is {}".format(spread))
         toBuy = False
         if spread < 0 :
@@ -166,6 +168,7 @@ class TradeBot:
                 print("current position is {}".format(position.qty))
                 if (int(position.qty) <= 3 and spread > 0):
                     print("place order")
+                    spread = 0.4
                     api.submit_order(
                         symbol=symbol,
                         qty=1,
@@ -178,6 +181,7 @@ class TradeBot:
                         take_profit={'limit_price': symbol_price * (1+spread)}
                     )
         if toBuy == True:
+            spread = 0.4
             api.submit_order(
                 symbol=symbol,
                 qty=1,
@@ -189,3 +193,4 @@ class TradeBot:
                            'limit_price': symbol_price * (1 - spread) * 0.95},
                 take_profit={'limit_price': symbol_price * (1 + spread)}
             )
+
