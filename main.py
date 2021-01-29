@@ -256,10 +256,10 @@ def predict():
         #ticker2='LBTYK'
         win = 5
         past = 6
-        bot = TradeBot(ticker1,ticker2,win,past)
+        bot = TradeBot(ticker1,ticker2,win,past,key,secret)
         result = bot.predictPrice()
         print(result)
-        bot.buy(ticker2,result, key, secret)
+        bot.buy(ticker2,result)
         return 'Hello {}!'.format(str(result))
     return ('', 204)
 
@@ -325,12 +325,12 @@ def train():
         ticker1 = req_json['ticker1']
         ticker2 = req_json['ticker2']
         print(ticker1,ticker2)
-        
+        (API_KEY,API_SECRET) = init_vars()
         #ticker1='ZM'
         #ticker2='LBTYK'
         win = 5
         past = 6
-        bot = TradeBot(ticker1,ticker2,win,past)
+        bot = TradeBot(ticker1,ticker2,win,past,API_KEY,API_SECRET)
         result = bot.pair_loss()
         print(result)
         prefix = ticker1 + "-" + ticker2 + "-"
@@ -394,6 +394,8 @@ def sellAll():
     (API_KEY,API_SECRET) = init_vars()
     APCA_API_BASE_URL = "https://paper-api.alpaca.markets"
     api = tradeapi.REST(API_KEY, API_SECRET, APCA_API_BASE_URL, 'v2')
+    print("cancel order")
+    api.cancel_all_orders()
     portfolio = api.list_positions()
     for position in portfolio:
         print("{} shares of {}".format(position.qty, position.symbol))
@@ -404,8 +406,6 @@ def sellAll():
             type='market',
             time_in_force='gtc'
         )
-    print("cancel order")
-    api.cancel_all_orders()
     return ('', 204)
 
 def download_blob(bucket_name, source_blob_name, destination_file_name):
